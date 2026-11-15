@@ -82,6 +82,7 @@ th, td { padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); text-a
 th { font-size: 0.85rem; color: var(--muted); }
 .num { text-align: right; }
 tr.out td { color: var(--danger); font-weight: 600; }
+td.order { font-weight: 700; }
 
 .note {
   margin: 0.5rem 0;

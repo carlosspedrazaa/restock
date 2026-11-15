@@ -1,18 +1,16 @@
-"""Check the log-a-visit form's text boxes and turn them into counts or error messages."""
-
+#Check the log-a-visit form's text boxes and turn them into counts or error messages
 from datetime import date
 
 
 def parse_whole_number(text):
-    """Return text as a whole number 0 or more, or None if it isn't one."""
-    # isdigit() rejects "-3", "2.5" and "". isascii() also rejects symbols like "²".
+    #Return text as a whole number 0 or more, or None if it isn't one
     if text.isascii() and text.isdigit():
         return int(text)
     return None
 
 
 def parse_visit_date(text):
-    """Return text like '2026-11-13' as a date, or None if it isn't a real date."""
+    #Return text like '2026-11-13' as a date, or None if it isn't a real date
     try:
         return date.fromisoformat(text.strip())
     except ValueError:
@@ -20,7 +18,7 @@ def parse_visit_date(text):
 
 
 def parse_one_count(on_hand_text, received_text):
-    """Check one product's two boxes; return (count_numbers, error_message)."""
+    #Check one product's two boxes; return (count_numbers, error_message)
     if not on_hand_text:
         if received_text:
             return None, "Enter on hand too, or clear received."
@@ -34,7 +32,7 @@ def parse_one_count(on_hand_text, received_text):
 
 
 def parse_counts(form, product_ids):
-    """Read the on_hand_<id> and received_<id> boxes; return (counts, errors_by_product)."""
+    #Read the on_hand_<id> and received_<id> boxes -> return (counts, errors_by_product)
     counts = []
     errors = {}
     for product_id in product_ids:
@@ -52,7 +50,7 @@ def parse_counts(form, product_ids):
 
 
 def parse_visit_form(form, product_ids, today):
-    """Check the whole form; return (visit_date, counts, errors). Empty errors means OK."""
+    #Check the whole form; return (visit_date, counts, errors). Empty errors means OK 
     errors = {}
     visit_date = parse_visit_date(form.get("visit_date", ""))
     if visit_date is None:

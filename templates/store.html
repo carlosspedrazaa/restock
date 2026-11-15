@@ -17,7 +17,10 @@
   {% if latest.notes %}<p class="note">{{ latest.notes }}</p>{% endif %}
   <table>
     <thead>
-      <tr><th>Product</th><th class="num">On hand</th><th class="num">Received</th></tr>
+      <tr>
+        <th>Product</th><th class="num">On hand</th><th class="num">Received</th>
+        <th class="num">Order</th>
+      </tr>
     </thead>
     <tbody>
       {% for count in latest.counts %}
@@ -26,10 +29,16 @@
         <td>{{ count.name }} <span class="muted">{{ count.size }}</span></td>
         <td class="num">{{ count.on_hand }}</td>
         <td class="num">{{ count.received }}</td>
+        {# None from reorder.py means "not enough history", shown as a dash. #}
+        <td class="num order">
+          {{ count.suggested_order if count.suggested_order is not none else "—" }}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  <p class="muted">Order = suggested units to cover sales until the next visit.
+    — means there isn't enough history to suggest one yet.</p>
 {% else %}
   <p>No visits logged yet.</p>
 {% endif %}

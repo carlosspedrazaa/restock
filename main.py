@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 import forms
 import queries
+import reorder
 from db import get_connection
 
 BASE_DIR = Path(__file__).parent
@@ -83,6 +84,33 @@ def add_due_status(store, today):
     return {**store, "days_until_due": days_until_due, "status": status, "label": label}
 
 
+def days_between(later_date, earlier_date):
+    """Return whole days from earlier_date to later_date, both 'YYYY-MM-DD' strings."""
+    return (date.fromisoformat(later_date) - date.fromisoformat(earlier_date)).days
+
+
+def add_suggestions(store, visits):
+    """Give each of the latest visit's counts a suggested_order from reorder.py."""
+    latest = visits[0]
+    previous = visits[1] if len(visits) > 1 else None
+    previous_on_hand = {}
+    gap = None  # None tells reorder.py this is a first visit
+    if previous:
+        previous_on_hand = {c["product_id"]: c["on_hand"] for c in previous["counts"]}
+        gap = days_between(latest["visit_date"], previous["visit_date"])
+
+    for count in latest["counts"]:
+        count["suggested_order"] = reorder.suggest_order(
+            # .get() gives None if this product wasn't counted last visit.
+            previous_on_hand=previous_on_hand.get(count["product_id"]),
+            received=count["received"],
+            current_on_hand=count["on_hand"],
+            days_between=gap,
+            # The order has to last until the next scheduled visit.
+            days_until_next_visit=store["visit_frequency_days"],
+        )
+
+
 def render_visit_form(request, conn, store, values, errors, status_code=200):
     """Show the log-a-visit form, refilled with what was typed and any error messages."""
     products = queries.products_for_store(conn, store["id"])
@@ -121,6 +149,8 @@ def store_page(request: Request, store_id: int, saved: bool = False, conn=Depend
     """Show one store's latest counts and a list of its earlier visits."""
     store = load_store_or_404(conn, store_id)
     visits = queries.store_history(conn, store_id)
+    if visits:
+        add_suggestions(store, visits)
     context = {
         "store": store,
         "latest": visits[0] if visits else None,
