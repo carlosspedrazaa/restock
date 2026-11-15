@@ -1,19 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Stores</h1>
-<p class="muted">Most overdue first · Today is {{ today.strftime("%a, %b %d") }}</p>
+<h1>Route overview</h1>
+<p class="muted">{{ today.strftime("%A, %B") }} {{ today.day }} · {{ overviews|length }} stores</p>
 
+{# Totals across every store, so the first thing you see is what needs doing. #}
+<section class="stats">
+  <div class="stat{% if totals.overdue %} stat-alert{% endif %}">
+    <span class="stat-num">{{ totals.overdue }}</span>
+    <span class="stat-label">Stores to visit</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">{{ totals.products_to_order }}</span>
+    <span class="stat-label">Products to order</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num">{{ totals.units_to_order }}</span>
+    <span class="stat-label">Units to order</span>
+  </div>
+  <div class="stat{% if totals.out_of_stock %} stat-alert{% endif %}">
+    <span class="stat-num">{{ totals.out_of_stock }}</span>
+    <span class="stat-label">Out of stock</span>
+  </div>
+</section>
+
+<h2>Stores <span class="muted">· most overdue first</span></h2>
 <ul class="cards">
-  {% for store in stores %}
+  {% for o in overviews %}
   <li>
-    <a class="card" href="/stores/{{ store.id }}">
-      <span class="card-title">{{ store.name }}</span>
-      <span class="muted">
-        {{ store.city }} · every {{ store.visit_frequency_days }} days
-        {% if store.last_visit %} · last visit {{ store.last_visit }}{% endif %}
+    <a class="card" href="/stores/{{ o.store.id }}">
+      <span class="card-head">
+        <span class="card-title">{{ o.store.name }}</span>
+        <span class="badge {{ o.status }}">{{ o.label }}</span>
       </span>
-      <span class="badge {{ store.status }}">{{ store.label }}</span>
+      <span class="muted">
+        Every {{ o.store.visit_frequency_days }} days
+        {% if o.latest %} · last visit {{ o.latest.visit_date|nice_date }}{% endif %}
+      </span>
+      <span class="facts">
+        {% if not o.latest %}
+          <span class="fact fact-quiet">No visits yet</span>
+        {% elif not o.has_history %}
+          <span class="fact fact-quiet">Needs one more visit for suggestions</span>
+        {% elif o.order_lines %}
+          <span class="fact">Order {{ o.order_lines|length }} products · {{ o.units_to_order }} units</span>
+        {% else %}
+          <span class="fact fact-quiet">Nothing to order</span>
+        {% endif %}
+        {% if o.out_of_stock %}
+          <span class="fact fact-alert">{{ o.out_of_stock }} out of stock</span>
+        {% endif %}
+      </span>
     </a>
   </li>
   {% endfor %}

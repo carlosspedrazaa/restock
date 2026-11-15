@@ -1,6 +1,6 @@
 """The web app: HTML pages and JSON API routes that read and write the Restock database."""
 
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -10,8 +10,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 import forms
+import overview
 import queries
-import reorder
 from db import get_connection
 
 BASE_DIR = Path(__file__).parent
@@ -20,6 +20,16 @@ app = FastAPI(title="Restock")
 # Serves style.css at /static/style.css.
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+
+def nice_date(iso_text):
+    """Turn '2026-11-08' into 'Nov 8' for display."""
+    day = date.fromisoformat(iso_text)
+    return f"{day:%b} {day.day}"
+
+
+# Lets every template write {{ some_date | nice_date }}.
+templates.env.filters["nice_date"] = nice_date
 
 
 # --- Shapes of incoming API data ----------------------------------------------
@@ -62,55 +72,6 @@ def load_store_or_404(conn, store_id):
     return store
 
 
-def plural_days(n):
-    """Return '1 day' or 'n days'."""
-    return "1 day" if n == 1 else f"{n} days"
-
-
-def add_due_status(store, today):
-    """Return the store plus days_until_due, a status for colour, and a label to show."""
-    if store["last_visit"] is None:
-        # Never visited means it should be visited now.
-        return {**store, "days_until_due": 0, "status": "due", "label": "Never visited"}
-    last_visit = date.fromisoformat(store["last_visit"])
-    next_due = last_visit + timedelta(days=store["visit_frequency_days"])
-    days_until_due = (next_due - today).days
-    if days_until_due < 0:
-        status, label = "overdue", f"Overdue {plural_days(-days_until_due)}"
-    elif days_until_due == 0:
-        status, label = "due", "Due today"
-    else:
-        status, label = "ok", f"Due in {plural_days(days_until_due)}"
-    return {**store, "days_until_due": days_until_due, "status": status, "label": label}
-
-
-def days_between(later_date, earlier_date):
-    """Return whole days from earlier_date to later_date, both 'YYYY-MM-DD' strings."""
-    return (date.fromisoformat(later_date) - date.fromisoformat(earlier_date)).days
-
-
-def add_suggestions(store, visits):
-    """Give each of the latest visit's counts a suggested_order from reorder.py."""
-    latest = visits[0]
-    previous = visits[1] if len(visits) > 1 else None
-    previous_on_hand = {}
-    gap = None  # None tells reorder.py this is a first visit
-    if previous:
-        previous_on_hand = {c["product_id"]: c["on_hand"] for c in previous["counts"]}
-        gap = days_between(latest["visit_date"], previous["visit_date"])
-
-    for count in latest["counts"]:
-        count["suggested_order"] = reorder.suggest_order(
-            # .get() gives None if this product wasn't counted last visit.
-            previous_on_hand=previous_on_hand.get(count["product_id"]),
-            received=count["received"],
-            current_on_hand=count["on_hand"],
-            days_between=gap,
-            # The order has to last until the next scheduled visit.
-            days_until_next_visit=store["visit_frequency_days"],
-        )
-
-
 def render_visit_form(request, conn, store, values, errors, status_code=200):
     """Show the log-a-visit form, refilled with what was typed and any error messages."""
     products = queries.products_for_store(conn, store["id"])
@@ -135,26 +96,26 @@ def render_visit_form(request, conn, store, values, errors, status_code=200):
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, conn=Depends(get_db)):
-    """Show every store, most overdue first, so you can see where to go next."""
+    """Show route totals and every store, most overdue first."""
     today = date.today()
-    stores = [add_due_status(s, today) for s in queries.stores_with_last_visit(conn)]
-    stores.sort(key=lambda store: store["days_until_due"])
-    return templates.TemplateResponse(
-        request, "dashboard.html", {"stores": stores, "today": today}
-    )
+    overviews = [
+        overview.store_overview(conn, store, today) for store in queries.list_stores(conn)
+    ]
+    overviews.sort(key=lambda o: o["days_until_due"])
+    context = {
+        "overviews": overviews,
+        "totals": overview.route_totals(overviews),
+        "today": today,
+    }
+    return templates.TemplateResponse(request, "dashboard.html", context)
 
 
 @app.get("/stores/{store_id}", response_class=HTMLResponse)
 def store_page(request: Request, store_id: int, saved: bool = False, conn=Depends(get_db)):
-    """Show one store's latest counts and a list of its earlier visits."""
+    """Show one store's order list, latest counts and earlier visits."""
     store = load_store_or_404(conn, store_id)
-    visits = queries.store_history(conn, store_id)
-    if visits:
-        add_suggestions(store, visits)
     context = {
-        "store": store,
-        "latest": visits[0] if visits else None,
-        "earlier": visits[1:],
+        "o": overview.store_overview(conn, store, date.today()),
         "saved": saved,  # true right after a visit was saved, to show a message
     }
     return templates.TemplateResponse(request, "store.html", context)

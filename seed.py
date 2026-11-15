@@ -18,35 +18,25 @@ RESTOCK_AMOUNT = 24
 
 # (name, city, visit_frequency_days, busyness). All names are invented.
 # Busyness scales sales, so busy stores sell more of everything.
+# Plain numbered names so nobody mistakes them for real stores.
 STORES = [
-    ("Northgate Garden Center", "Austin", 3, 1.5),
-    ("Riverside Garden Center", "Round Rock", 3, 1.4),
-    ("Hillcrest Garden Center", "Cedar Park", 4, 1.2),
-    ("Lakeview Garden Center", "Georgetown", 7, 1.0),
-    ("Southpark Garden Center", "San Marcos", 7, 0.9),
-    ("Westfield Garden Center", "Leander", 7, 0.8),
-    ("Eastwood Garden Center", "Pflugerville", 7, 0.7),
-    ("Meadow Creek Garden Center", "Kyle", 7, 0.6),
+    ("Tampa 1", "Tampa", 3, 1.5),
+    ("Tampa 2", "Tampa", 4, 1.2),
+    ("Tampa 3", "Tampa", 7, 1.0),
+    ("Tampa 4", "Tampa", 7, 0.8),
 ]
 
 # (name, size, category, average units sold per day at a normal store)
+# Includes every plant named in NOTES below, so the notes parser has matches.
 PRODUCTS = [
     ("Poinsettia", "6 in", "Seasonal", 1.5),
-    ("Lavender", "1 gal", "Perennials", 1.2),
-    ("Coneflower", "1 gal", "Perennials", 0.9),
-    ("Black-Eyed Susan", "1 gal", "Perennials", 0.8),
-    ("Hosta", "1 gal", "Perennials", 0.7),
-    ("Petunia", "4 in", "Annuals", 2.0),
-    ("Marigold", "4 in", "Annuals", 1.6),
     ("Garden Mum", "8 in", "Seasonal", 1.8),
+    ("Lavender", "1 gal", "Perennials", 1.2),
+    ("Petunia", "4 in", "Annuals", 2.0),
     ("Boxwood", "3 gal", "Shrubs", 0.6),
     ("Hydrangea", "2 gal", "Shrubs", 0.5),
-    ("Shrub Rose", "3 gal", "Shrubs", 0.6),
-    ("Crape Myrtle", "3 gal", "Trees", 0.3),
     ("Rosemary", "1 gal", "Herbs", 0.7),
-    ("Basil", "4 in", "Herbs", 1.0),
     ("Tomato", "4 in", "Vegetables", 1.1),
-    ("Pothos", "6 in", "Houseplants", 0.8),
 ]
 
 # Sample visit notes in English, Spanish and a mix, for the notes parser later.
@@ -111,7 +101,8 @@ def next_count(previous_on_hand, daily_sales, days):
 def simulate_store(conn, store_id, frequency, busyness, products):
     """Create every visit and count for one store over the demo period."""
     # Each store carries its own selection of products.
-    catalog = random.sample(products, k=random.randint(12, len(products)))
+    # Up to 2 products left out, so some stores show "not carried here yet".
+    catalog = random.sample(products, k=random.randint(len(products) - 2, len(products)))
     on_hand = {product_id: random.randint(15, 40) for product_id, _ in catalog}
     visit_count = WEEKS * 7 // frequency
 

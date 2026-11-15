@@ -17,18 +17,6 @@ def list_products(conn):
     return [dict(row) for row in rows]
 
 
-def stores_with_last_visit(conn):
-    """Return every store plus the date of its most recent visit (None if never visited)."""
-    # LEFT JOIN keeps stores that have no visits yet.
-    rows = conn.execute(
-        "SELECT s.id, s.name, s.city, s.visit_frequency_days, "
-        "       MAX(v.visit_date) AS last_visit "
-        "FROM stores s LEFT JOIN visits v ON v.store_id = s.id "
-        "GROUP BY s.id ORDER BY s.name"
-    ).fetchall()
-    return [dict(row) for row in rows]
-
-
 def products_for_store(conn, store_id):
     """Return all products, with carried = 1 if this store has ever counted it."""
     rows = conn.execute(

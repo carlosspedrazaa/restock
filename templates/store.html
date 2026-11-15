@@ -1,57 +1,90 @@
 {% extends "base.html" %}
 
-{% block title %}{{ store.name }} · Restock{% endblock %}
+{% block title %}{{ o.store.name }} · Restock{% endblock %}
 
 {% block content %}
-<p><a href="/">← All stores</a></p>
-<h1>{{ store.name }}</h1>
-<p class="muted">{{ store.city }} · visited every {{ store.visit_frequency_days }} days</p>
+<p><a href="/">← Route overview</a></p>
+
+<div class="page-head">
+  <h1>{{ o.store.name }}</h1>
+  <span class="badge {{ o.status }}">{{ o.label }}</span>
+</div>
+<p class="muted">
+  {{ o.store.city }} · visited every {{ o.store.visit_frequency_days }} days
+  {% if o.latest %} · last visit {{ o.latest.visit_date|nice_date }}{% endif %}
+</p>
 
 {% if saved %}<p class="flash">Visit saved.</p>{% endif %}
 
-<a class="button" href="/stores/{{ store.id }}/visits/new">Log a visit</a>
+<a class="button" href="/stores/{{ o.store.id }}/visits/new">Log a visit</a>
 
-<h2>Latest counts</h2>
-{% if latest %}
-  <p class="muted">From the visit on {{ latest.visit_date }}</p>
-  {% if latest.notes %}<p class="note">{{ latest.notes }}</p>{% endif %}
+{% if o.latest %}
+  {# The order list comes first: it is the decision this page exists to make. #}
+  <section class="panel">
+    <h2>Order list</h2>
+    {% if o.order_lines %}
+      <p class="muted">{{ o.order_lines|length }} products · {{ o.units_to_order }} units, to last until the next visit</p>
+      <ul class="order-list">
+        {% for count in o.order_lines %}
+        <li>
+          <span>{{ count.name }} <span class="muted">{{ count.size }}</span></span>
+          <span class="order-qty">{{ count.suggested_order }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% elif o.has_history %}
+      <p>Nothing to order. Current stock covers sales until the next visit.</p>
+    {% else %}
+      <p>Not enough history yet. Suggestions start after the next visit, once there are two counts to compare.</p>
+    {% endif %}
+  </section>
+
+  <h2>Latest counts <span class="muted">· {{ o.latest.visit_date|nice_date }}</span></h2>
+  {% if o.latest.notes %}<p class="note">{{ o.latest.notes }}</p>{% endif %}
   <table>
     <thead>
       <tr>
-        <th>Product</th><th class="num">On hand</th><th class="num">Received</th>
+        <th>Product</th><th class="num">On hand</th><th class="num">Rcvd</th>
         <th class="num">Order</th>
       </tr>
     </thead>
     <tbody>
-      {% for count in latest.counts %}
+      {% for count in o.counts %}
       {# Zero on hand means sold out, so it gets highlighted. #}
       <tr{% if count.on_hand == 0 %} class="out"{% endif %}>
         <td>{{ count.name }} <span class="muted">{{ count.size }}</span></td>
         <td class="num">{{ count.on_hand }}</td>
         <td class="num">{{ count.received }}</td>
         {# None from reorder.py means "not enough history", shown as a dash. #}
-        <td class="num order">
+        <td class="num{% if count.suggested_order %} order{% else %} muted{% endif %}">
           {{ count.suggested_order if count.suggested_order is not none else "—" }}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted">Order = suggested units to cover sales until the next visit.
-    — means there isn't enough history to suggest one yet.</p>
-{% else %}
-  <p>No visits logged yet.</p>
-{% endif %}
+  <p class="muted small">Rcvd = delivered since the previous visit.
+    — means there isn't enough history to suggest an order yet.</p>
 
-{% if earlier %}
-<h2>Earlier visits</h2>
-<ul class="history">
-  {% for visit in earlier %}
-  <li>
-    <strong>{{ visit.visit_date }}</strong> · {{ visit.counts|length }} products counted
-    {% if visit.notes %}<p class="note">{{ visit.notes }}</p>{% endif %}
-  </li>
-  {% endfor %}
-</ul>
+  {% if o.earlier %}
+  {# Collapsed so the page stays short; tap to open. #}
+  <details class="history">
+    <summary>Earlier visits ({{ o.earlier|length }})</summary>
+    <table>
+      <thead><tr><th>Date</th><th class="num">Products</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for visit in o.earlier %}
+        <tr>
+          <td>{{ visit.visit_date|nice_date }}</td>
+          <td class="num">{{ visit.counts|length }}</td>
+          <td>{{ visit.notes or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+{% else %}
+  <p class="panel">No visits logged yet. Log the first one to see counts and order suggestions.</p>
 {% endif %}
 {% endblock %}
