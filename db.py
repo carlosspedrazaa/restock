@@ -11,7 +11,9 @@ SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
 def get_connection(db_path=DB_PATH):
     """Open a SQLite connection with foreign keys enforced and dict-style rows."""
-    conn = sqlite3.connect(db_path)
+    # FastAPI may open the connection on one thread and use it on another.
+    # That's safe here because each request gets its own connection.
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     # Lets code write row["name"] instead of remembering that name is row[1].
     conn.row_factory = sqlite3.Row
     # SQLite ignores REFERENCES rules unless this is switched on per connection.

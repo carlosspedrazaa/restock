@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{{ store.name }} · Restock{% endblock %}
+
+{% block content %}
+<p><a href="/">← All stores</a></p>
+<h1>{{ store.name }}</h1>
+<p class="muted">{{ store.city }} · visited every {{ store.visit_frequency_days }} days</p>
+
+{% if saved %}<p class="flash">Visit saved.</p>{% endif %}
+
+<a class="button" href="/stores/{{ store.id }}/visits/new">Log a visit</a>
+
+<h2>Latest counts</h2>
+{% if latest %}
+  <p class="muted">From the visit on {{ latest.visit_date }}</p>
+  {% if latest.notes %}<p class="note">{{ latest.notes }}</p>{% endif %}
+  <table>
+    <thead>
+      <tr><th>Product</th><th class="num">On hand</th><th class="num">Received</th></tr>
+    </thead>
+    <tbody>
+      {% for count in latest.counts %}
+      {# Zero on hand means sold out, so it gets highlighted. #}
+      <tr{% if count.on_hand == 0 %} class="out"{% endif %}>
+        <td>{{ count.name }} <span class="muted">{{ count.size }}</span></td>
+        <td class="num">{{ count.on_hand }}</td>
+        <td class="num">{{ count.received }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No visits logged yet.</p>
+{% endif %}
+
+{% if earlier %}
+<h2>Earlier visits</h2>
+<ul class="history">
+  {% for visit in earlier %}
+  <li>
+    <strong>{{ visit.visit_date }}</strong> · {{ visit.counts|length }} products counted
+    {% if visit.notes %}<p class="note">{{ visit.notes }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

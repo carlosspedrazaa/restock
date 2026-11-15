@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Log a visit · {{ store.name }}{% endblock %}
+
+{% block content %}
+<p><a href="/stores/{{ store.id }}">← {{ store.name }}</a></p>
+<h1>Log a visit</h1>
+
+{% if errors %}
+  <p class="error-box">Some entries need fixing. Nothing was saved yet.</p>
+{% endif %}
+{% if errors.form %}<p class="error">{{ errors.form }}</p>{% endif %}
+
+<form method="post" action="/stores/{{ store.id }}/visits">
+  <label for="visit_date">Visit date</label>
+  <input type="date" id="visit_date" name="visit_date" value="{{ values.visit_date }}" required>
+  {% if errors.visit_date %}<p class="error">{{ errors.visit_date }}</p>{% endif %}
+
+  <h2>Counts</h2>
+  <p class="muted">Count shelf and backroom together. Leave on hand blank for anything you didn't count.</p>
+
+  {% for product in carried %}
+    {% include "_count_row.html" %}
+  {% endfor %}
+
+  {% if others %}
+  {# Hidden by default so the form stays short; opens again after an error. #}
+  <details{% if errors %} open{% endif %}>
+    <summary>Products not carried here yet ({{ others|length }})</summary>
+    {% for product in others %}
+      {% include "_count_row.html" %}
+    {% endfor %}
+  </details>
+  {% endif %}
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes" rows="4">{{ values.notes }}</textarea>
+
+  <button type="submit">Save visit</button>
+</form>
+{% endblock %}

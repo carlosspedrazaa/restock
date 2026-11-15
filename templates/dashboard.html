@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Stores</h1>
+<p class="muted">Most overdue first · Today is {{ today.strftime("%a, %b %d") }}</p>
+
+<ul class="cards">
+  {% for store in stores %}
+  <li>
+    <a class="card" href="/stores/{{ store.id }}">
+      <span class="card-title">{{ store.name }}</span>
+      <span class="muted">
+        {{ store.city }} · every {{ store.visit_frequency_days }} days
+        {% if store.last_visit %} · last visit {{ store.last_visit }}{% endif %}
+      </span>
+      <span class="badge {{ store.status }}">{{ store.label }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

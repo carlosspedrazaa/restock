@@ -1,0 +1,17 @@
+{# One product's row in the visit form. The leading _ marks it as a piece, not a full page. #}
+{% set error = errors.get(product.id) %}
+<div class="count-row{% if error %} has-error{% endif %}">
+  <span class="product">{{ product.name }} <span class="muted">{{ product.size }}</span></span>
+  <label>
+    On hand
+    {# inputmode="numeric" opens the number keypad on phones. #}
+    <input type="number" inputmode="numeric" min="0" step="1"
+           name="on_hand_{{ product.id }}" value="{{ values.get('on_hand_' ~ product.id, '') }}">
+  </label>
+  <label>
+    Received
+    <input type="number" inputmode="numeric" min="0" step="1"
+           name="received_{{ product.id }}" value="{{ values.get('received_' ~ product.id, '') }}">
+  </label>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+</div>
