@@ -1,0 +1,23 @@
+# Runs the test suite on GitHub's servers every time code is pushed,
+# so a broken change shows a red X on the repo instead of going unnoticed.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"  # same as .python-version and the live site
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -v
