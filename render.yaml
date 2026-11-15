@@ -8,3 +8,8 @@ services:
     # The free plan doesn't keep files between restarts, so rebuild the demo
     # database on every start, then run the app on the port Render gives us.
     startCommand: python seed.py && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Render's servers run on UTC. Use Tampa's time zone so "today" on the
+      # dashboard and the visit form's default date match the user's day.
+      - key: TZ
+        value: America/New_York
