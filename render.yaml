@@ -1,0 +1,10 @@
+# Render deploy settings, kept in the repo so they're reviewed like code.
+services:
+  - type: web
+    name: restock
+    runtime: python
+    plan: free  # without this line Render picks a paid plan
+    buildCommand: pip install -r requirements.txt
+    # The free plan doesn't keep files between restarts, so rebuild the demo
+    # database on every start, then run the app on the port Render gives us.
+    startCommand: python seed.py && uvicorn main:app --host 0.0.0.0 --port $PORT

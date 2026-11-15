@@ -9,8 +9,10 @@ from db import DB_PATH, get_connection, init_db
 # A fixed seed means everyone who runs this gets exactly the same demo data.
 random.seed(42)
 
-START_DATE = date(2026, 9, 24)
 WEEKS = 7
+# Counted back from today so the live demo always looks current,
+# instead of every store showing "Overdue 40 days" a month from now.
+START_DATE = date.today() - timedelta(days=WEEKS * 7)
 
 # Mimics a standing order: if stock was low last visit, this many units arrive.
 LOW_LEVEL = 12
